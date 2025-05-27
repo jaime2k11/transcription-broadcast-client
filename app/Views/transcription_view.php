@@ -18,7 +18,7 @@
 
     document.getElementById('session_id_display').textContent = session_id;
 
-    const socket = io('ws://localhost:8080/ws/transcription', {
+    const socket = io('<?=$_SERVER['WEBSOCKET_URL']?>', {
       query: { session_id },
       path: '/socket.io'
     });
