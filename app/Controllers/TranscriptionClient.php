@@ -4,8 +4,8 @@ namespace App\Controllers;
 
 class TranscriptionClient extends BaseController
 {
-    public function index()
-    {
-        return view('transcription_view');
+    public function index(){
+        $session_id = $this->request->getGet('session_id');
+        return view('transcription_view', ['session_id' => $session_id]);
     }
 }

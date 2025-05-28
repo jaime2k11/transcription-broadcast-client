@@ -14,7 +14,8 @@
   <div id="transcription_output"></div>
 
   <script>
-    const session_id = new URLSearchParams(window.location.search).get('session_id') || 'sess_123';
+    const session_id = '<?= esc($session_id) ?>';
+    console.log('Session ID cargado desde PHP:', session_id);
 
     document.getElementById('session_id_display').textContent = session_id;
 
