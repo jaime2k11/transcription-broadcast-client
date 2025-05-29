@@ -8,4 +8,10 @@ class TranscriptionClient extends BaseController
         $session_id = $this->request->getGet('session_id');
         return view('transcription_view', ['session_id' => $session_id]);
     }
+
+    public function translate(){
+        $session_id = $this->request->getGet('session_id');
+        return view('translation_view', ['session_id' => $session_id]);
+    }
+
 }
