@@ -12,21 +12,21 @@
   </style>
 </head>
 <body>
-  <h2>Recepción y Traducción de Transcripción</h2>
+  <h2>Recepción y Traducción de Transcripción:</h2>
 
   <div class="translation-settings">
     <label>Idioma origen:</label>
     <select id="source_language">
-      <option value="es">Español</option>
-      <option value="en">Inglés</option>
-      <!-- puedes agregar más -->
+      <?php foreach($languages as $k => $name): ?>
+        <option value="<?= $k ?>" <?= $lang_origin == $k ? ' selected' : '' ?>><?= $name ?></option>
+      <?php endforeach;  ?>
     </select>
 
     <label>Idioma destino:</label>
     <select id="target_language">
-      <option value="en">Inglés</option>
-      <option value="es">Español</option>
-      <!-- puedes agregar más -->
+      <?php foreach($languages as $k => $name): ?>
+        <option value="<?= $k ?>" <?= $lang_target == $k ? ' selected' : '' ?>><?= $name ?></option>
+      <?php endforeach; ?>
     </select>
 
     <button id="start_button">Iniciar Traducción</button>
@@ -35,7 +35,7 @@
   <p><strong>Session ID:</strong> <span id="session_id_display"><?= esc($session_id) ?></span></p>
 
   <div class="columns">
-    <div class="column">
+    <div class="column" style="display: none;">
       <h3>Transcripción Original</h3>
       <div id="transcription_output"></div>
     </div>
@@ -104,6 +104,9 @@
       startButton.disabled = true;
       startButton.textContent = 'Conectado';
     });
+    <?php if($session_id && $lang_origin && $lang_target): ?>
+      startButton.click();
+    <?php endif; ?>
   </script>
 </body>
 </html>
