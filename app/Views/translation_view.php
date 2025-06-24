@@ -100,23 +100,6 @@
               speaker_name
             }));
           }
-
-          /*
-          const res = await fetch('<?= base_url('/translate-api') ?>', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text, source, target })
-          });
-
-          const json = await res.json();
-          const trans_id = `trans-${result_id}`;
-          let translated = document.getElementById(trans_id);
-          if(!translated){
-            translated = document.createElement('p');
-            translationOutput.appendChild(translated);
-            translated.id = trans_id;
-          }
-          translated.textContent = `[${speaker_name}] ${json.translated_text}`;*/
         } catch (e) {
           console.error('Error procesando mensaje o traduciendo:', e);
         }
@@ -140,7 +123,6 @@
       translation_socket.addEventListener('message', (event) => {
         try {
           const data = JSON.parse(event.data);
-          console.log(event);
           const { translated_text, result_id, speaker_name } = data;
 
           const trans_id = `trans-${result_id}`;
@@ -156,9 +138,6 @@
           console.error('Error al procesar traducción:', err);
         }
       });
-
-
-
       // Deshabilitar botón
       startButton.disabled = true;
       startButton.textContent = 'Conectado';
