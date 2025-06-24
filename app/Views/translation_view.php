@@ -2,7 +2,6 @@
 <html>
 <head>
   <title>Transcripción con Traducción</title>
-  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
   <style>
     body { font-family: sans-serif; padding: 20px; }
     .columns { display: flex; gap: 40px; }
@@ -47,40 +46,62 @@
 
   <script>
     const session_id = '<?= esc($session_id) ?>';
-    let socket = null;
+    const ws_url = '<?= $_SERVER['WEBSOCKET_URL'] ?>'; // Ej: ws://localhost:3000
+    const ws_translate_url = '<?= $_SERVER['WS_TRANSLATE_URL'] ?>'; // Ej: ws://localhost:8081
+
+
+    let transcription_socket = null;
+    let translation_socket = null;
     let isStarted = false;
 
     const transcriptionOutput = document.getElementById('transcription_output');
     const translationOutput = document.getElementById('translation_output');
     const startButton = document.getElementById('start_button');
 
-    startButton.addEventListener('click', () => {
+    const startTranslation = () => {
       if (isStarted) return;
       isStarted = true;
 
       const source = document.getElementById('source_language').value;
       const target = document.getElementById('target_language').value;
 
-      // Conexión WebSocket
-      socket = io('<?=$_SERVER['WEBSOCKET_URL']?>', {
-        query: { session_id },
-        path: '/socket.io'
+      // Crear conexión WebSocket nativa
+      transcription_socket = new WebSocket(`${ws_url}?session_id=${encodeURIComponent(session_id)}`);
+
+      transcription_socket.addEventListener('open', () => {
+        console.log('WebSocket conectado');
       });
 
-      socket.on('connect', () => {
-        console.log('Conectado al WebSocket');
-      });
-
-      socket.on('transcription', async (data) => {
-        if (!data || !data.text) return;
-
-        const { text, speaker_name } = data;
-
-        const para = document.createElement('p');
-        para.textContent = `[${speaker_name}] ${text}`;
-        transcriptionOutput.appendChild(para);
-
+      transcription_socket.addEventListener('message', async (event) => {
         try {
+          const { data } = JSON.parse(event.data);
+          if (!data || !data.text) return;
+
+
+          const { text, speaker_name, result_id } = data;
+          const para_id = `result-${result_id}`;
+
+          let para = document.getElementById(para_id);
+          if(!para){
+            para = document.createElement('p');
+            para.id = para_id;
+            transcriptionOutput.appendChild(para);
+          }
+
+          para.textContent = `[${speaker_name}] ${text}`;
+
+          // Reenviar al socket de traducción
+          if (translation_socket.readyState === WebSocket.OPEN) {
+            translation_socket.send(JSON.stringify({
+              text,
+              source,
+              target,
+              result_id,
+              speaker_name
+            }));
+          }
+
+          /*
           const res = await fetch('<?= base_url('/translate-api') ?>', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -88,23 +109,64 @@
           });
 
           const json = await res.json();
-          const translated = document.createElement('p');
-          translated.textContent = `[${speaker_name}] ${json.translated_text}`;
-          translationOutput.appendChild(translated);
+          const trans_id = `trans-${result_id}`;
+          let translated = document.getElementById(trans_id);
+          if(!translated){
+            translated = document.createElement('p');
+            translationOutput.appendChild(translated);
+            translated.id = trans_id;
+          }
+          translated.textContent = `[${speaker_name}] ${json.translated_text}`;*/
         } catch (e) {
-          console.error('Error al traducir:', e);
+          console.error('Error procesando mensaje o traduciendo:', e);
         }
       });
 
-      socket.on('disconnect', () => {
-        console.log('WebSocket desconectado');
+      transcription_socket.addEventListener('close', () => {
+        console.log('WebSocket cerrado');
       });
 
-      // Deshabilitar el botón luego de iniciar
+      transcription_socket.addEventListener('error', (err) => {
+        console.error('Error en WebSocket:', err);
+      });
+
+      // WebSocket 2: para enviar textos a traducir
+      translation_socket = new WebSocket(ws_translate_url);
+
+      translation_socket.addEventListener('open', () => {
+        console.log('WebSocket de traducción conectado');
+      });
+
+      translation_socket.addEventListener('message', (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log(event);
+          const { translated_text, result_id, speaker_name } = data;
+
+          const trans_id = `trans-${result_id}`;
+          let translated = document.getElementById(trans_id);
+          if (!translated) {
+            translated = document.createElement('p');
+            translated.id = trans_id;
+            translationOutput.appendChild(translated);
+          }
+
+          translated.textContent = `[${speaker_name}] ${translated_text}`;
+        } catch (err) {
+          console.error('Error al procesar traducción:', err);
+        }
+      });
+
+
+
+      // Deshabilitar botón
       startButton.disabled = true;
       startButton.textContent = 'Conectado';
-    });
-    <?php if($session_id && $lang_origin && $lang_target): ?>
+    };
+
+    startButton.addEventListener('click', startTranslation);
+
+    <?php if ($session_id && $lang_origin && $lang_target): ?>
       startButton.click();
     <?php endif; ?>
   </script>
