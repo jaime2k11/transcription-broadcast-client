@@ -2,7 +2,6 @@
 <html>
 <head>
   <title>Recepción de Transcripción</title>
-  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
   <style>
     body { font-family: sans-serif; padding: 20px; }
     #transcription_output p { margin: 5px 0; }
@@ -19,25 +18,46 @@
 
     document.getElementById('session_id_display').textContent = session_id;
 
-    const socket = io('<?=$_SERVER['WEBSOCKET_URL']?>', {
-      query: { session_id },
-      path: '/socket.io'
+    const ws_url = '<?= $_SERVER['WEBSOCKET_URL'] ?>'; // Ej: ws://localhost:3000
+
+    let transcription_socket = null;
+    const transcriptionOutput = document.getElementById('transcription_output');
+
+    transcription_socket = new WebSocket(`${ws_url}?session_id=${encodeURIComponent(session_id)}`);
+
+    transcription_socket.addEventListener('open', () => {
+      console.log('WebSocket conectado');
     });
 
-    socket.on('connect', () => {
-      console.log('Conectado al WebSocket desde CodeIgniter');
-    });
+    transcription_socket.addEventListener('message', async (event) => {
+      try {
+        const { data } = JSON.parse(event.data);
+        if (!data || !data.text) return;
 
-    socket.on('transcription', (data) => {
-      console.log('Transcripción recibida:', data);
-      const para = document.createElement('p');
-      para.textContent = `[${data.speaker_name}] ${data.text}`;
-      document.getElementById('transcription_output').appendChild(para);
-    });
+        const { text, speaker_labels, speaker_name, result_id } = data;
+        const para_id = `result-${result_id}`;
 
-    socket.on('disconnect', () => {
-      console.log('WebSocket desconectado');
-    });
+        let para = document.getElementById(para_id);
+        if(!para){
+          para = document.createElement('p');
+          para.id = para_id;
+          transcriptionOutput.appendChild(para);
+        }
+
+        para.textContent = speaker_labels ? `[${speaker_name}] ${text}` : text;
+
+        } catch (e) {
+          console.error('Error procesando mensaje:', e);
+        }
+      });
+
+      transcription_socket.addEventListener('close', () => {
+        console.log('WebSocket cerrado');
+      });
+
+      transcription_socket.addEventListener('error', (err) => {
+        console.error('Error en WebSocket:', err);
+      });
   </script>
 </body>
 </html>
